@@ -1,0 +1,223 @@
+# -*- coding: utf-8 -*-
+"""
+Derivatives for Omega taken within the tracker program.
+
+@author: John Wilson
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.signal import lfilter
+
+class data:
+    def __init__(self, m, wDisk) :
+        
+        self.m = m
+        self.wDisk = wDisk
+
+        
+        impDir = "C:\\Users\\John Wilson\\Documents\\Physics\\J Lab\\Final\\Data for Python"
+        # This import directory should contain all the folders that contain the data
+        # you want to look at
+        
+        path = ''
+        path_50 = impDir+"\\50g_Full.csv"
+        path_100 = impDir+"\\100g_Fulli.csv"
+        path_150 = impDir+"\\150g_Full.csv"
+        path_200 = impDir+"\\200g_i0.csv"
+        path_201 = impDir+"\\200g_i1.csv"
+        path_202 = impDir+"\\200g_i2.csv"
+        
+        if self.m == 50 :
+            path = path_50
+
+        elif self.m == 100:
+            path = path_100
+        
+        elif self.m == 150 :
+            path = path_150
+            
+        elif self.m == 200 :
+            path = path_200
+            
+        elif self.m == 201 :
+            path = path_201
+            self.m = 200
+            
+        elif self.m == 202:
+            path = path_202
+            self.m = 200
+        
+        self.wdata = list( np.transpose( pd.read_csv(path, usecols = [0,1,2] ).values.tolist() ) )
+        
+        for i in range( len(self.wdata) ) :
+            self.wdata[i] = list( self.wdata[i] )
+            
+        self.tdata = list( np.transpose( pd.read_csv(path, usecols = [3,4] ).values.tolist() ) )
+        
+        for i in range( len(self.tdata) ) :
+            self.tdata[i] = list( self.tdata[i] )
+    
+
+        '''
+        The below code can be used to check every data point if they give you trouble
+        '''
+#        for i in range(len(self.wdata[0])) :
+#            print( ' round number ' + str(i) )
+#            self.wdata[0][i] = np.float64(self.wdata[0][i])
+#            self.wdata[1][i] = np.float64(self.wdata[1][i])
+#            self.wdata[2][i] = np.float64(self.wdata[2][i])
+#            
+#        self.wdata = list(self.wdata)
+#        
+#        for i in range(len(self.tdata[0])) :
+#            print( ' round number ' + str(i) )
+#            self.tdata[0][i] = np.float64(self.tdata[0][i])
+#            self.tdata[1][i] = np.float64(self.tdata[1][i])
+#            
+#        self.tdata = list(self.tdata)
+        
+    def wfilter(self, n) :
+        
+        # The higher the n the smoother the filter will be, but the more the 
+        # data will be modified.
+        
+        b = [1.0 / n] * n
+        a = 1
+        self.wdata[1] = lfilter( b, a, self.wdata[1] )
+    
+    def tfilter(self, n) :
+
+        b = [1.0 / n] * n
+        a = 1
+        self.tdata[1] = lfilter( b, a, self.tdata[1] )
+        
+    def phifilter(self, n) :
+        
+        b = [1.0 / n] * n
+        a = 1
+        self.wdata[2] = lfilter( b, a, self.wdata[2] )
+        
+    def plotdata(self) :
+        
+        plt.close('all')
+        
+        fig1 = plt.figure(1, clear = True)
+        ax1 = fig1.add_subplot(111)
+        ax1.set_ylabel('Theta', size = 30)
+        ax1.set_xlabel('Time (s)', size = 30)
+        line, = ax1.plot(self.tdata[0],self.tdata[1], color='blue', lw=2)
+        plt.show()
+        
+        fig2 = plt.figure(2, clear = True)
+        ax2 = fig2.add_subplot(111)
+        ax2.set_ylabel('Omega', size = 30)
+        ax2.set_xlabel('Time (s)', size = 30)
+        ax2.scatter( self.wdata[0], self.wdata[1], color = 'red', s = 0.5 )
+        line, = ax2.plot( self.wdata[0], self.wdata[1], color='blue', lw = 2 )
+        plt.show()
+        
+        fig3 = plt.figure(3, clear = True)
+        ax3 = fig3.add_subplot(211)
+        ax3.set_ylabel('Theta', size = 30)
+        ax3.set_xlabel('Time (s)', size = 30)
+        ax3.scatter( self.tdata[0], self.tdata[1], color = 'red', s = 0.5 )
+        ax3 = fig3.add_subplot(212)
+        ax3.set_ylabel('Omega', size = 30)
+        ax3.set_xlabel('Time (s)', size = 30)
+        ax3.scatter( self.wdata[0], self.wdata[1], color = 'blue', s = 0.5 )
+        plt.show()
+        
+        fig4 = plt.figure(4, clear = True)
+        ax4 = fig4.add_subplot(111)
+        ax4.set_ylabel('Phi', size = 30)
+        ax4.set_xlabel('Time (s)', size = 30)
+        ax4.scatter( self.wdata[0], self.wdata[2], color = 'red', s = 0.5 )
+        plt.show()
+    
+    def para_sol(self) :
+        # Generates the parametric solution to be compared to theory
+        
+        l = min(len(self.tdata[0]),len(self.wdata[0]))
+        
+        self.qs = np.zeros([2,l])
+        
+        for i in range(l) :
+            
+            self.qs[0][i] = self.wdata[2][i]
+            
+            self.qs[1][i] = self.tdata[1][i]
+            
+        fig100 = plt.figure(100, clear = True)
+        ax100 = fig100.add_subplot(111)
+        ax100.set_ylabel('Theta', size = 30)
+        ax100.set_xlabel('Phi', size = 30)
+        line, = ax100.plot( self.qs[0], self.qs[1], color='blue', lw=2 )
+        plt.grid()
+        plt.show()
+    
+    def energy(self) :
+        # Generates the parametric solution to be compared to theory
+        
+        l = min(len(self.tdata[0]),len(self.wdata[0]))
+        
+        self.ps = np.zeros([2,l])
+        
+        for i in range(int(l)) :
+            
+            self.ps[1][i] = self.wdata[1][i]
+            
+            self.ps[0][i] = self.tdata[1][i]
+            
+        fig200 = plt.figure(200, clear = True)
+        ax200 = fig200.add_subplot(111)
+        ax200.set_ylabel('Omega', size = 30)
+        ax200.set_xlabel('Theta', size = 30)
+        line, = ax200.plot( self.ps[0], self.ps[1], color='blue', lw=2 )
+        plt.grid()
+        plt.show()
+        
+    def der(self) :
+        self.dthet_dt = list( np.diff(self.tdata[1])/np.diff(self.tdata[0]) )
+        self.dphi_dt = list( np.diff(self.wdata[1])/np.diff(self.wdata[0]) )
+        
+        for i in range( abs( len(self.dthet_dt) - len(self.tdata[0]) ) ) :
+            self.dthet_dt = [0] + self.dthet_dt
+        
+        for i in range( abs( len(self.dphi_dt) - len(self.wdata[0]) ) ) :
+            self.dphi_dt = [0] + self.dphi_dt
+        
+        b = [1.0 / 5] * 5
+        a = 1
+        self.dthet_dt = lfilter( b, a, self.dthet_dt )
+        
+        b = [1.0 / 5] * 5
+        a = 1
+        self.dphi_dt = lfilter( b, a, self.dphi_dt )
+        
+    def c(self) :
+        plt.close('all')
+
+        
+#d200 = data(200, 2171.067)
+#d200.tfilter(3)
+#d200.wfilter(5)
+#d200.plotdata()
+#d200.para_sol()
+#d200.der()
+
+#d200_1 = data(201, 2171.067)
+#d200_1.tfilter(3)
+#d200_1.wfilter(5)
+#d200_1.plotdata()
+#d200_1.para_sol()
+#d200_1.der()
+        
+d200_2 = data(202, 2171.067)
+d200_2.tfilter(3)
+d200_2.wfilter(5)
+d200_2.plotdata()
+d200_2.para_sol()
+d200_2.der()
+
